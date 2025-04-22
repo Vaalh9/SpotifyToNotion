@@ -28,6 +28,35 @@ app.add_middleware(
 notion = NotionSync()
 spotify = SpotifySync()
 
+@app.post("/sync_artists")
+def sync_spotify_artists_to_notion():
+    try:
+        artists = spotify.get_followed_artists()
+        created = 0
+        for artist in artists:
+            artist_name = artist['name']
+            photo_url = artist['images'][0]['url'] if artist['images'] else None
+            genres = artist.get('genres', [])
+            popularity = artist.get('popularity')
+            artist_id = notion.find_artist(artist_name)
+            if not artist_id:
+                notion.create_artist(artist_name, photo_url=photo_url, genres=genres, popularity=popularity)
+                created += 1
+            else:
+                print(f"[DEBUG UPDATE] Artiste déjà présent : {artist_name} | Update genres: {genres}, popularité: {popularity}, photo: {photo_url}")
+                notion.update_artist(artist_id, photo_url=photo_url, genres=genres, popularity=popularity)
+        return {"status": f"Synchronisation terminée. {created} artistes suivis ajoutés."}
+    except Exception as e:
+        import traceback
+        print("Erreur dans /sync_artists :", e)
+        traceback.print_exc()
+        try:
+            return JSONResponse(status_code=500, content={"error": str(e)})
+        except Exception as err:
+            print("Erreur critique backend:", err)
+            traceback.print_exc()
+            return {"error": f"Erreur critique backend: {str(err)}"}
+
 @app.post("/sync")
 def sync_spotify_to_notion():
     try:
@@ -41,15 +70,31 @@ def sync_spotify_to_notion():
             if not artist_id:
                 artist_id = notion.create_artist(artist_name, photo_url=None)  # TODO: photo
             album_id = notion.find_album(alb['name'], artist_id)
+            label = alb.get('label')
+            nb_pistes = alb.get('total_tracks')
+            cover_url = alb['images'][0]['url'] if alb['images'] else None
+            annee = int(alb['release_date'][:4])
             if not album_id:
+                print("[DEBUG ALBUM]", alb['name'], "| label:", label, "| total_tracks:", nb_pistes)
                 notion.create_album(
                     name=alb['name'],
-                    year=int(alb['release_date'][:4]),
+                    year=annee,
                     artist_id=artist_id,
-                    cover_url=alb['images'][0]['url'] if alb['images'] else None,
-                    listens=None
+                    cover_url=cover_url,
+                    listens=None,
+                    label=label,
+                    nb_pistes=nb_pistes
                 )
                 created += 1
+            else:
+                print(f"[DEBUG UPDATE] Album déjà présent : {alb['name']} | Update label: {label}, nb_pistes: {nb_pistes}, cover_url: {cover_url}, annee: {annee}")
+                notion.update_album(
+                    album_id=album_id,
+                    year=annee,
+                    cover_url=cover_url,
+                    label=label,
+                    nb_pistes=nb_pistes
+                )
         return {"status": f"Synchronisation terminée. {created} albums ajoutés."}
     except Exception as e:
         import traceback

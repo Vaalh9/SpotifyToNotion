@@ -22,11 +22,16 @@ class NotionSync:
             return res["results"][0]["id"]
         return None
 
-    def create_artist(self, name: str, photo_url: Optional[str] = None) -> str:
+    def create_artist(self, name: str, photo_url: Optional[str] = None, genres: Optional[list] = None, popularity: Optional[int] = None) -> str:
         # Crée une page artiste
         props = {"Nom": {"title": [{"text": {"content": name}}]}}
         if photo_url:
             props["Photo"] = {"files": [{"type": "external", "name": name, "external": {"url": photo_url}}]}
+        if genres:
+            props["Genres"] = {"multi_select": [{"name": g} for g in genres if g]}
+        if popularity is not None:
+            props["Popularité"] = {"number": popularity}
+        print("[DEBUG] Propriétés envoyées à Notion pour l'artiste:", props)
         page = self.client.pages.create(parent={"database_id": DB_ARTISTS_ID}, properties=props)
         return page["id"]
 
@@ -42,7 +47,7 @@ class NotionSync:
             return res["results"][0]["id"]
         return None
 
-    def create_album(self, name: str, year: int, artist_id: str, cover_url: Optional[str] = None, listens: Optional[int] = None) -> str:
+    def create_album(self, name: str, year: int, artist_id: str, cover_url: Optional[str] = None, listens: Optional[int] = None, label: Optional[str] = None, nb_pistes: Optional[int] = None) -> str:
         props = {
             "Nom": {"title": [{"text": {"content": name}}]},
             "Année": {"number": year},
@@ -52,7 +57,38 @@ class NotionSync:
             props["Pochette"] = {"files": [{"type": "external", "name": name, "external": {"url": cover_url}}]}
         if listens is not None:
             props["Écoutes"] = {"number": listens}
+        if label:
+            props["Label"] = {"rich_text": [{"text": {"content": label}}]}
+        if nb_pistes is not None:
+            props["Nb pistes"] = {"number": nb_pistes}
+        print("[DEBUG] Propriétés envoyées à Notion pour l'album:", props)
         page = self.client.pages.create(parent={"database_id": DB_ALBUMS_ID}, properties=props)
         return page["id"]
 
-    # TODO: Méthodes pour titres, update, etc.
+    def update_album(self, album_id: str, year: Optional[int] = None, cover_url: Optional[str] = None, listens: Optional[int] = None, label: Optional[str] = None, nb_pistes: Optional[int] = None):
+        props = {}
+        if year is not None:
+            props["Année"] = {"number": year}
+        if cover_url:
+            props["Pochette"] = {"files": [{"type": "external", "name": "cover", "external": {"url": cover_url}}]}
+        if listens is not None:
+            props["Écoutes"] = {"number": listens}
+        if label:
+            props["Label"] = {"rich_text": [{"text": {"content": label}}]}
+        if nb_pistes is not None:
+            props["Nb pistes"] = {"number": nb_pistes}
+        print(f"[DEBUG] Mise à jour album {album_id} avec:", props)
+        if props:
+            self.client.pages.update(page_id=album_id, properties=props)
+
+    def update_artist(self, artist_id: str, photo_url: Optional[str] = None, genres: Optional[list] = None, popularity: Optional[int] = None):
+        props = {}
+        if photo_url:
+            props["Photo"] = {"files": [{"type": "external", "name": "photo", "external": {"url": photo_url}}]}
+        if genres:
+            props["Genres"] = {"multi_select": [{"name": g} for g in genres if g]}
+        if popularity is not None:
+            props["Popularité"] = {"number": popularity}
+        print(f"[DEBUG] Mise à jour artiste {artist_id} avec:", props)
+        if props:
+            self.client.pages.update(page_id=artist_id, properties=props)

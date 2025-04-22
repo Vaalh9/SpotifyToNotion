@@ -3,6 +3,11 @@
 Synchronisez automatiquement vos albums Spotify favoris avec une base de données Notion, via une interface web simple et un backend FastAPI.
 
 ---
+<<<<<<< HEAD
+=======
+- Interface web simple
+- Déploiement Docker
+>>>>>>> f164bf2 (Commit complet : synchronisation Spotify ↔ Notion, debug, doc et automatisation)
 
 ## 🚀 Présentation
 
