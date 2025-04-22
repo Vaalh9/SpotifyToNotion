@@ -32,7 +32,8 @@ class NotionSync:
         if popularity is not None:
             props["Popularité"] = {"number": popularity}
         print("[DEBUG] Propriétés envoyées à Notion pour l'artiste:", props)
-        page = self.client.pages.create(parent={"database_id": DB_ARTISTS_ID}, properties=props)
+        cover = {"type": "external", "external": {"url": photo_url}} if photo_url else None
+        page = self.client.pages.create(parent={"database_id": DB_ARTISTS_ID}, properties=props, cover=cover)
         return page["id"]
 
     def find_album(self, name: str, artist_id: Optional[str] = None) -> Optional[str]:
@@ -62,7 +63,8 @@ class NotionSync:
         if nb_pistes is not None:
             props["Nb pistes"] = {"number": nb_pistes}
         print("[DEBUG] Propriétés envoyées à Notion pour l'album:", props)
-        page = self.client.pages.create(parent={"database_id": DB_ALBUMS_ID}, properties=props)
+        cover = {"type": "external", "external": {"url": cover_url}} if cover_url else None
+        page = self.client.pages.create(parent={"database_id": DB_ALBUMS_ID}, properties=props, cover=cover)
         return page["id"]
 
     def update_album(self, album_id: str, year: Optional[int] = None, cover_url: Optional[str] = None, listens: Optional[int] = None, label: Optional[str] = None, nb_pistes: Optional[int] = None):
@@ -78,8 +80,9 @@ class NotionSync:
         if nb_pistes is not None:
             props["Nb pistes"] = {"number": nb_pistes}
         print(f"[DEBUG] Mise à jour album {album_id} avec:", props)
-        if props:
-            self.client.pages.update(page_id=album_id, properties=props)
+        cover = {"type": "external", "external": {"url": cover_url}} if cover_url else None
+        if props or cover:
+            self.client.pages.update(page_id=album_id, properties=props, cover=cover)
 
     def update_artist(self, artist_id: str, photo_url: Optional[str] = None, genres: Optional[list] = None, popularity: Optional[int] = None):
         props = {}
@@ -90,5 +93,6 @@ class NotionSync:
         if popularity is not None:
             props["Popularité"] = {"number": popularity}
         print(f"[DEBUG] Mise à jour artiste {artist_id} avec:", props)
-        if props:
-            self.client.pages.update(page_id=artist_id, properties=props)
+        cover = {"type": "external", "external": {"url": photo_url}} if photo_url else None
+        if props or cover:
+            self.client.pages.update(page_id=artist_id, properties=props, cover=cover)
