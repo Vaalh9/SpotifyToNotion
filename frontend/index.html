@@ -10,6 +10,7 @@
 <div class="container mt-5">
     <h1>Spotify ↔️ Notion Sync</h1>
     <button type="button" class="btn btn-success my-3" onclick="syncSpotify()">Synchroniser Spotify → Notion</button>
+<button type="button" class="btn btn-info my-1" onclick="syncArtists()">Synchroniser Artistes Spotify</button>
     <div class="progress my-2" style="height: 25px;">
       <div id="sync-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
     </div>
@@ -113,6 +114,40 @@ document.getElementById('manual-form').onsubmit = async function(e) {
     const data = await resp.json();
     document.getElementById('manual-result').innerText = data.status;
 };
+function syncArtists() {
+    const bar = document.getElementById('sync-progress-bar');
+    bar.style.width = '0%';
+    bar.innerText = '0%';
+    bar.className = 'progress-bar progress-bar-striped progress-bar-animated';
+    bar.setAttribute('aria-valuenow', 0);
+    let progress = 0;
+    let fakeProgress = setInterval(() => {
+        if (progress < 90) {
+            progress += 2;
+            bar.style.width = progress + '%';
+            bar.innerText = progress + '%';
+            bar.setAttribute('aria-valuenow', progress);
+        }
+    }, 80);
+    fetch('http://localhost:8000/sync_artists', {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            clearInterval(fakeProgress);
+            bar.style.width = '100%';
+            bar.innerText = '100%';
+            bar.className = 'progress-bar bg-info';
+            bar.setAttribute('aria-valuenow', 100);
+            document.getElementById('sync-result').innerHTML = `<div class='alert alert-info mt-2'>${data.status || data.error}</div>`;
+        })
+        .catch(err => {
+            clearInterval(fakeProgress);
+            bar.style.width = '100%';
+            bar.innerText = 'Erreur';
+            bar.className = 'progress-bar bg-danger';
+            bar.setAttribute('aria-valuenow', 100);
+            document.getElementById('sync-result').innerHTML = `<div class='alert alert-danger mt-2'>Erreur lors de la synchronisation des artistes.</div>`;
+        });
+}
 </script>
 </body>
 </html>

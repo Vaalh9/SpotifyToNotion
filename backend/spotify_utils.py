@@ -16,7 +16,7 @@ class SpotifySync:
                 client_id=SPOTIFY_CLIENT_ID,
                 client_secret=SPOTIFY_CLIENT_SECRET,
                 redirect_uri=SPOTIFY_REDIRECT_URI,
-                scope=SCOPE,
+                scope=SCOPE + " user-follow-read",
                 open_browser=True
             ))
         except Exception as e:
@@ -26,7 +26,7 @@ class SpotifySync:
                     client_id=SPOTIFY_CLIENT_ID,
                     client_secret=SPOTIFY_CLIENT_SECRET,
                     redirect_uri=SPOTIFY_REDIRECT_URI,
-                    scope=SCOPE,
+                    scope=SCOPE + " user-follow-read",
                     open_browser=False
                 )
                 auth_url = auth_manager.get_authorize_url()
@@ -35,6 +35,16 @@ class SpotifySync:
             except Exception as err:
                 print(f"[ERREUR Spotipy critique] {err}")
                 raise
+
+    def get_followed_artists(self):
+        # Récupère les artistes suivis par l'utilisateur
+        results = self.sp.current_user_followed_artists(limit=50)
+        artists = results['artists']['items']
+        # Pagination
+        while results['artists']['next']:
+            results = self.sp.next(results['artists'])
+            artists.extend(results['artists']['items'])
+        return artists
 
     def get_saved_albums(self):
         # Récupère les albums sauvegardés
