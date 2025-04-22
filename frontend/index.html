@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Spotify ↔️ Notion Sync</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <h1>Spotify ↔️ Notion Sync</h1>
+    <button type="button" class="btn btn-success my-3" onclick="syncSpotify()">Synchroniser Spotify → Notion</button>
+    <div class="progress my-2" style="height: 25px;">
+      <div id="sync-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+    </div>
+    <div id="sync-result"></div>
+    <hr>
+    <h2>Ajout manuel d'album</h2>
+    <form id="manual-form">
+        <div class="mb-2">
+            <label>Artiste</label>
+            <input type="text" name="artist" class="form-control" required>
+        </div>
+        <div class="mb-2">
+            <label>Album</label>
+            <input type="text" name="album" class="form-control" required>
+        </div>
+        <div class="mb-2">
+            <label>Année</label>
+            <input type="number" name="year" class="form-control" required>
+        </div>
+        <div class="mb-2">
+            <label>Pochette d'album</label>
+            <input type="file" name="cover" class="form-control">
+        </div>
+        <div class="mb-2">
+            <label>Photo artiste</label>
+            <input type="file" name="artist_photo" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">Ajouter</button>
+    </form>
+    <div id="manual-result" class="mt-2"></div>
+</div>
+<script>
+function syncSpotify() {
+    // Barre de progression : démarre à 0%
+    const bar = document.getElementById('sync-progress-bar');
+    bar.style.width = '0%';
+    bar.innerText = '0%';
+    bar.className = 'progress-bar progress-bar-striped progress-bar-animated';
+    bar.setAttribute('aria-valuenow', 0);
+    // Animation de progression simulée
+    let progress = 0;
+    let fakeProgress = setInterval(() => {
+        if (progress < 90) {
+            progress += 2;
+            bar.style.width = progress + '%';
+            bar.innerText = progress + '%';
+            bar.setAttribute('aria-valuenow', progress);
+        }
+    }, 80);
+    console.log('Bouton synchroniser cliqué');
+    fetch('http://127.0.0.1:8000/sync', {
+        method: 'POST'
+    })
+        .then(r => {
+            console.log('Réponse brute backend:', r);
+            const contentType = r.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                return r.json();
+            } else {
+                return { error: 'Réponse vide ou non JSON du backend' };
+            }
+        })
+        .then(data => {
+            clearInterval(fakeProgress);
+            bar.style.width = '100%';
+            bar.innerText = '100%';
+            bar.className = 'progress-bar bg-success';
+            bar.setAttribute('aria-valuenow', 100);
+            console.log('Réponse backend:', data);
+            const resultDiv = document.getElementById('sync-result');
+            resultDiv.innerText = '';
+            resultDiv.className = '';
+            if (data.status) {
+                resultDiv.innerText = data.status;
+                resultDiv.className = 'alert alert-success mt-2';
+            } else if (data.error) {
+                resultDiv.innerText = data.error;
+                resultDiv.className = 'alert alert-danger mt-2';
+            } else {
+                resultDiv.innerText = JSON.stringify(data);
+                resultDiv.className = 'alert alert-warning mt-2';
+            }
+        })
+        .catch(err => {
+            clearInterval(fakeProgress);
+            bar.style.width = '100%';
+            bar.innerText = 'Erreur';
+            bar.className = 'progress-bar bg-danger';
+            bar.setAttribute('aria-valuenow', 100);
+            console.error('Erreur fetch:', err);
+            const resultDiv = document.getElementById('sync-result');
+            resultDiv.innerText = 'Erreur de connexion au backend';
+            resultDiv.className = 'alert alert-danger mt-2';
+        });
+}
+
+document.getElementById('manual-form').onsubmit = async function(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const resp = await fetch('http://127.0.0.1:8000/add_manual', {method: 'POST', body: formData});
+    const data = await resp.json();
+    document.getElementById('manual-result').innerText = data.status;
+};
+</script>
+</body>
+</html>

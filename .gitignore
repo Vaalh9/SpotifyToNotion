@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Environments
+.env
+.env.*
+
+# VSCode
+.vscode/
+
+# Mac/Windows
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Node
+node_modules/
+
+# Others
+.cache/
+
+# Ignore frontend build artifacts
+frontend/dist/
+frontend/build/

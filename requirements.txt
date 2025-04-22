@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+spotipy
+notion-client
+requests
+python-dotenv
