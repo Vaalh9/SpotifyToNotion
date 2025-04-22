@@ -1,10 +1,8 @@
-# Spotify ↔️ Notion Sync
+# SpotifyToNotion
 
-Ce projet permet de synchroniser tes écoutes Spotify, albums à écouter, favoris, ainsi que tes vinyles ou albums hors Spotify, dans une base de données Notion.
+Synchronisez automatiquement vos albums Spotify favoris avec une base de données Notion, via une interface web simple et un backend FastAPI.
 
-- Synchronisation manuelle Spotify → Notion
-- Export automatique des pochettes et photos artistes
-- Ajout manuel d'albums non-Spotify (vinyles, imports...)
+---
 - Interface web simple
 - Déploiement Docker
 
