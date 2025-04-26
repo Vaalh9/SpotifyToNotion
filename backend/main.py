@@ -28,24 +28,39 @@ app.add_middleware(
 notion = NotionSync()
 spotify = SpotifySync()
 
+@app.post("/clean_album_duplicates")
+def clean_album_duplicates():
+    try:
+        notion.clean_album_duplicates()
+        return {"status": "Nettoyage des doublons terminé."}
+    except Exception as e:
+        import traceback
+        print("Erreur dans /clean_album_duplicates :", e)
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.post("/sync_artists")
 def sync_spotify_artists_to_notion():
     try:
         artists = spotify.get_followed_artists()
         created = 0
+        updated = 0
         for artist in artists:
+            print(f"[SYNC][DEBUG][RAW] Artiste Spotify brut : {artist}")
             artist_name = artist['name']
-            photo_url = artist['images'][0]['url'] if artist['images'] else None
+            photo_url = artist['images'][0]['url'] if artist.get('images') else None
             genres = artist.get('genres', [])
             popularity = artist.get('popularity')
             artist_id = notion.find_artist(artist_name)
-            if not artist_id:
-                notion.create_artist(artist_name, photo_url=photo_url, genres=genres, popularity=popularity)
-                created += 1
-            else:
-                print(f"[DEBUG UPDATE] Artiste déjà présent : {artist_name} | Update genres: {genres}, popularité: {popularity}, photo: {photo_url}")
+            if artist_id:
                 notion.update_artist(artist_id, photo_url=photo_url, genres=genres, popularity=popularity)
-        return {"status": f"Synchronisation terminée. {created} artistes suivis ajoutés."}
+                print(f"[SYNC][UPDATE] {artist_name} mis à jour | genres: {genres}, popularité: {popularity}, photo: {photo_url}")
+                updated += 1
+            else:
+                notion.create_artist(artist_name, photo_url=photo_url, genres=genres, popularity=popularity)
+                print(f"[SYNC][CREATE] {artist_name} créé | genres: {genres}, popularité: {popularity}, photo: {photo_url}")
+                created += 1
+        return {"status": f"Synchronisation terminée. {created} artistes créés, {updated} artistes mis à jour."}
     except Exception as e:
         import traceback
         print("Erreur dans /sync_artists :", e)
@@ -67,9 +82,11 @@ def sync_spotify_to_notion():
             alb = item['album']
             artist_name = alb['artists'][0]['name']
             artist_id = notion.find_artist(artist_name)
+            photo_url_artist = alb['artists'][0]['images'][0]['url'] if ('images' in alb['artists'][0] and alb['artists'][0]['images']) else None
             if not artist_id:
-                artist_id = notion.create_artist(artist_name, photo_url=None)  # TODO: photo
-            album_id = notion.find_album(alb['name'], artist_id)
+                artist_id = notion.create_artist(artist_name, photo_url=photo_url_artist)
+            spotify_album_id = alb['id']
+            album_id = notion.find_album(alb['name'], artist_id, spotify_album_id=spotify_album_id)
             label = alb.get('label')
             nb_pistes = alb.get('total_tracks')
             cover_url = alb['images'][0]['url'] if alb['images'] else None
@@ -83,7 +100,8 @@ def sync_spotify_to_notion():
                     cover_url=cover_url,
                     listens=None,
                     label=label,
-                    nb_pistes=nb_pistes
+                    nb_pistes=nb_pistes,
+                    spotify_album_id=spotify_album_id
                 )
                 created += 1
             else:
@@ -93,7 +111,8 @@ def sync_spotify_to_notion():
                     year=annee,
                     cover_url=cover_url,
                     label=label,
-                    nb_pistes=nb_pistes
+                    nb_pistes=nb_pistes,
+                    spotify_album_id=spotify_album_id
                 )
         return {"status": f"Synchronisation terminée. {created} albums ajoutés."}
     except Exception as e:

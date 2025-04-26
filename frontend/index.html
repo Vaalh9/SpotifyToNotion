@@ -10,7 +10,8 @@
 <div class="container mt-5">
     <h1>Spotify ↔️ Notion Sync</h1>
     <button type="button" class="btn btn-success my-3" onclick="syncSpotify()">Synchroniser Spotify → Notion</button>
-<button type="button" class="btn btn-info my-1" onclick="syncArtists()">Synchroniser Artistes Spotify</button>
+    <button type="button" class="btn btn-info my-1" onclick="syncArtists()">Synchroniser Artistes Spotify</button>
+    <button type="button" class="btn btn-warning my-1" id="clean-duplicates-btn" onclick="cleanDuplicates()">Nettoyer les doublons</button>
     <div class="progress my-2" style="height: 25px;">
       <div id="sync-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
     </div>
@@ -146,6 +147,36 @@ function syncArtists() {
             bar.className = 'progress-bar bg-danger';
             bar.setAttribute('aria-valuenow', 100);
             document.getElementById('sync-result').innerHTML = `<div class='alert alert-danger mt-2'>Erreur lors de la synchronisation des artistes.</div>`;
+        });
+}
+function cleanDuplicates() {
+    const btn = document.getElementById('clean-duplicates-btn');
+    const resultDiv = document.getElementById('sync-result');
+    btn.disabled = true;
+    btn.innerText = 'Nettoyage en cours...';
+    resultDiv.innerText = '';
+    resultDiv.className = '';
+    fetch('http://127.0.0.1:8000/clean_album_duplicates', {method: 'POST'})
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerText = 'Nettoyer les doublons';
+            if (data.status) {
+                resultDiv.innerText = data.status;
+                resultDiv.className = 'alert alert-success mt-2';
+            } else if (data.error) {
+                resultDiv.innerText = data.error;
+                resultDiv.className = 'alert alert-danger mt-2';
+            } else {
+                resultDiv.innerText = JSON.stringify(data);
+                resultDiv.className = 'alert alert-warning mt-2';
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Nettoyer les doublons';
+            resultDiv.innerText = 'Erreur lors du nettoyage : ' + err;
+            resultDiv.className = 'alert alert-danger mt-2';
         });
 }
 </script>
